@@ -2,16 +2,19 @@ package ee.mirko.sportlased.controller;
 
 import ee.mirko.sportlased.entity.Sportlane;
 import ee.mirko.sportlased.repository.SportlaseRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("sportlased")
@@ -24,8 +27,17 @@ public class SportlaneController {
     }
 
     @GetMapping
-    public List<Sportlane> getSportlased() {
-        return sportlaseRepository.findAll();
+    public Page<Sportlane> getSportlased(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String riik,
+            @RequestParam(defaultValue = "desc") String sortDirection
+    ) {
+        var pageable = PageRequest.of(page, size);
+        if ("asc".equalsIgnoreCase(sortDirection)) {
+            return sportlaseRepository.leiaLehekuljAsc(riik, pageable);
+        }
+        return sportlaseRepository.leiaLehekuljDesc(riik, pageable);
     }
 
     @PostMapping
@@ -35,9 +47,19 @@ public class SportlaneController {
 
         Sportlane sportlane = new Sportlane();
         sportlane.setNimi(päring.nimi().trim());
+        sportlane.setRiik(päring.riik() != null ? päring.riik().trim() : null);
         sportlane.getTulemused().add(päring.tulemus());
 
         return sportlaseRepository.save(sportlane);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void kustutaSportlane(@PathVariable Long id) {
+        if (!sportlaseRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Sportlast id-ga " + id + " ei leitud.");
+        }
+        sportlaseRepository.deleteById(id);
     }
 
     @PostMapping("/{id}/tulemused")
@@ -75,7 +97,7 @@ public class SportlaneController {
         }
     }
 
-    public record SportlaseLisaminePäring(String nimi, Integer tulemus) {
+    public record SportlaseLisaminePäring(String nimi, String riik, Integer tulemus) {
     }
 
     public record TulemuseLisaminePäring(Integer tulemus) {

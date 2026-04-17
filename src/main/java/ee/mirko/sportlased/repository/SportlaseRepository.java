@@ -10,26 +10,34 @@ import org.springframework.data.repository.query.Param;
 public interface SportlaseRepository extends JpaRepository<Sportlane, Long> {
 
     @Query(
-	    value = """
-		    select s
-		    from Sportlane s
-		    left join s.tulemused t
-		    where (:riik is null or lower(s.riik) = lower(:riik))
-		    group by s
-		    order by
-			case when :sortDirection = 'asc' then coalesce(sum(t), 0) end asc,
-			case when :sortDirection = 'desc' then coalesce(sum(t), 0) end desc,
-			s.id asc
-		    """,
-	    countQuery = """
-		    select count(s)
-		    from Sportlane s
-		    where (:riik is null or lower(s.riik) = lower(:riik))
-		    """
+        nativeQuery = true,
+        value = """
+            SELECT s.* FROM sportlane s
+            LEFT JOIN sportlane_tulemused st ON st.sportlane_id = s.id
+            WHERE (:riik IS NULL OR LOWER(s.riik) = LOWER(:riik))
+            GROUP BY s.id
+            ORDER BY COALESCE(SUM(st.tulemus), 0) ASC, s.id ASC
+            """,
+        countQuery = """
+            SELECT COUNT(*) FROM sportlane s
+            WHERE (:riik IS NULL OR LOWER(s.riik) = LOWER(:riik))
+            """
     )
-    Page<Sportlane> leiaLehekulg(
-	    @Param("riik") String riik,
-	    @Param("sortDirection") String sortDirection,
-	    Pageable pageable
-    );
+    Page<Sportlane> leiaLehekuljAsc(@Param("riik") String riik, Pageable pageable);
+
+    @Query(
+        nativeQuery = true,
+        value = """
+            SELECT s.* FROM sportlane s
+            LEFT JOIN sportlane_tulemused st ON st.sportlane_id = s.id
+            WHERE (:riik IS NULL OR LOWER(s.riik) = LOWER(:riik))
+            GROUP BY s.id
+            ORDER BY COALESCE(SUM(st.tulemus), 0) DESC, s.id ASC
+            """,
+        countQuery = """
+            SELECT COUNT(*) FROM sportlane s
+            WHERE (:riik IS NULL OR LOWER(s.riik) = LOWER(:riik))
+            """
+    )
+    Page<Sportlane> leiaLehekuljDesc(@Param("riik") String riik, Pageable pageable);
 }
