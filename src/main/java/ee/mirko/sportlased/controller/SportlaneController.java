@@ -1,9 +1,13 @@
 package ee.mirko.sportlased.controller;
 
+import ee.mirko.sportlased.dto.Asukoht;
+import ee.mirko.sportlased.dto.Kohtunik;
 import ee.mirko.sportlased.entity.Sportlane;
 import ee.mirko.sportlased.repository.SportlaseRepository;
+import ee.mirko.sportlased.service.OutAPIService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,9 +25,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class SportlaneController {
 
     private final SportlaseRepository sportlaseRepository;
+    private final OutAPIService outAPIService;
 
-    public SportlaneController(SportlaseRepository sportlaseRepository) {
+    public SportlaneController(SportlaseRepository sportlaseRepository, OutAPIService outAPIService) {
         this.sportlaseRepository = sportlaseRepository;
+        this.outAPIService = outAPIService;
     }
 
     @GetMapping
@@ -80,6 +86,16 @@ public class SportlaneController {
 
         int summa = sportlane.getTulemused().stream().mapToInt(Integer::intValue).sum();
         return new TulemusteSummaVastus(sportlane.getId(), sportlane.getNimi(), summa);
+    }
+
+    @GetMapping("/kohtunikud")
+    public List<Kohtunik> getKohtunikud() {
+        return outAPIService.getKohtunikud();
+    }
+
+    @GetMapping("/asukohad")
+    public List<Asukoht> getAsukohad() {
+        return outAPIService.getAsukohad();
     }
 
     private void valideeriNimi(String nimi) {
